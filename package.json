@@ -1,0 +1,19 @@
+{
+  "name": "xjs-cli",
+  "version": "0.0.1",
+  "description": "Xjs Framework Cli",
+  "main": "cli.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "xjs": "./cli.js"
+  },
+  "keywords": [
+    "xjs",
+    "xjs-framework",
+    "cli"
+  ],
+  "author": "Xjs",
+  "license": "ISC"
+}
