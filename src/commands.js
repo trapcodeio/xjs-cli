@@ -83,7 +83,7 @@ let commands = {
         mkdirp.sync(appFullPath);
 
         const installInApp = (lib) => {
-            return shell.exec(`npm install --prefix ${appFullPath} ${lib} --no-audit --no-package-lock --silent`)
+            return shell.exec(`npm install --prefix ${appFullPath} ${lib} --save --no-audit --silent`)
         };
 
         name = name.split('/');
