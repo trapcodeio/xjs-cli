@@ -99,7 +99,12 @@ let commands = {
                 version: "1.0.0",
                 description: "",
                 main: "server.js",
-                scripts: {},
+                scripts: {
+                    "start": "node server.js",
+                    "watch": "cross-env NODE_ENV=development node_modules/webpack/bin/webpack.js --watch --progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js",
+                    "prod": "npm run production",
+                    "production": "cross-env NODE_ENV=production node_modules/webpack/bin/webpack.js --progress --hide-modules --config=node_modules/laravel-mix/setup/webpack.config.js"
+                },
                 keywords: [],
                 author: "",
                 license: "ISC"
@@ -135,9 +140,11 @@ let commands = {
         fs.copyFileSync(appPath('env.example'), appPath('.env'));
 
         log(`Installation complete!!`);
+        
         console.log(white('..........'));
         console.log(green(`Run the following commands to migrate your ${whiteBright('database')} and ${whiteBright('start')} your app.`));
         console.log(white('..........'));
+
         log(`Run ${yellow(`cd ${name}`)}`);
         log(`Run ${yellow('xjs migrate')} to migrate our database.`);
         log(`Run ${yellow('node server.js')} to start app. `);
