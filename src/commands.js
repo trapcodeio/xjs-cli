@@ -173,32 +173,32 @@ let commands = {
 
     makeView(name) {
         this.checkIfInXjsFolder();
-        shell.exec('node xjs make:view ' + name);
+        shell.exec('node cli make:view ' + name);
     },
 
     makeController(name) {
         this.checkIfInXjsFolder();
-        shell.exec('node xjs make:controller ' + name)
+        shell.exec('node cli make:controller ' + name)
     },
 
     makeModel(...args) {
         this.checkIfInXjsFolder();
-        shell.exec('node xjs make:model ' + args.join(' '))
+        shell.exec('node cli make:model ' + args.join(' '))
     },
 
     makeMiddleware(name) {
         this.checkIfInXjsFolder();
-        shell.exec('node xjs make:middleware ' + name)
+        shell.exec('node cli make:middleware ' + name)
     },
 
     makeJob(...args) {
         this.checkIfInXjsFolder();
-        shell.exec('node xjs make:job ' + args.join(' '))
+        shell.exec('node cli make:job ' + args.join(' '))
     },
 
     runJob(name) {
         this.checkIfInXjsFolder();
-        shell.exec('node xjs @' + name.trim())
+        shell.exec('node cli @' + name.trim())
     }
 };
 
