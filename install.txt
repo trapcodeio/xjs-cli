@@ -1,0 +1,3 @@
+const installXjs = require('@trapcode/xjs/install');
+// Install Xjs
+installXjs(__filename);
