@@ -1,9 +1,6 @@
 const {cyan, yellow, whiteBright, magenta, red, white, green} = require('chalk');
 const {prompt} = require('inquirer');
-/**
- * fs
- * @type {module:fs}
- */
+
 const fs = require('fs');
 const fse = require('fs-extra');
 const path = require('path');
@@ -45,7 +42,7 @@ const redWithBars = (str) => red('{' + str.trim() + '}');
 
 
 let commands = {
-    new(name, overwrite = false) {
+    new(name, overwrite = false, fromRoot = false) {
         if (name === undefined || typeof name === 'string' && !name.length) {
             return prompt({
                 type: 'input',
@@ -59,7 +56,8 @@ let commands = {
         const appPath = (str = '') => {
             return appFullPath + (str.length ? '/' + str : str)
         };
-        // process.exit();
+
+
         if (fs.existsSync(appFullPath) && !overwrite) {
 
             let self = this;
@@ -74,13 +72,13 @@ let commands = {
                     return log(`Delete ${redWithBars(appFullPath)} first.`);
                 }
             });
+
         }
 
         if (overwrite) {
             fse.removeSync(appFullPath);
         }
 
-        mkdirp.sync(appFullPath);
 
         name = name.split('/');
         if (name.length > 1) {
@@ -90,10 +88,13 @@ let commands = {
         }
 
         log(`Creating new project ${yellow(name)}`);
+
+        mkdirp.sync(appFullPath);
+
         // Get Latest dotenv and latest xjs
 
-        let latestDotEnv = shell.exec('npm show dotenv version', {silent: true}).stdout.trim();
-        let latestXjs = shell.exec(`npm show ${xjs} version`, {silent: true}).stdout.trim();
+        // let latestDotEnv = shell.exec('npm show dotenv version', {silent: true}).stdout.trim();
+        // let latestXjs = shell.exec(`npm show ${xjs} version`, {silent: true}).stdout.trim();
 
         fs.writeFileSync(appFullPath + '/package.json', JSON.stringify({
                 name,
@@ -108,11 +109,7 @@ let commands = {
                 },
                 keywords: [],
                 author: "",
-                license: "ISC",
-                dependencies: {
-                    "dotenv": "^" + latestDotEnv,
-                    "@trapcode/xjs": "^" + latestXjs
-                }
+                license: "ISC"
             }, null, 2
         ));
 
@@ -126,6 +123,13 @@ let commands = {
         if (!hasNodemon.includes('nodemon@')) {
             log(`Installing ${yellow('nodemon')} globally.`);
             shell.exec('npm install nodemon -g', {silent: true})
+        }
+
+        if (process.platform === 'linux' || process.platform === 'win64') {
+            log(`Due To ${yellow('npm --prefix')} is not compatible in ${yellow('windows')}`);
+            log(`Enter your project folder (${yellow('cd ' + name)})`);
+            log(`Then run ${yellow('xjs install')}`);
+            process.exit();
         }
 
         const installInApp = (lib) => {
