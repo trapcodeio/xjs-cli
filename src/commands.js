@@ -82,10 +82,6 @@ let commands = {
 
         mkdirp.sync(appFullPath);
 
-        const installInApp = (lib) => {
-            return shell.exec(`npm install --prefix ${appFullPath} ${lib} --save --no-audit --silent`)
-        };
-
         name = name.split('/');
         if (name.length > 1) {
             name = name[name.length - 1];
@@ -93,7 +89,12 @@ let commands = {
             name = name[0];
         }
 
-        log(`Creating new project ${yellowWithBars(name)}`);
+        log(`Creating new project ${yellow(name)}`);
+        // Get Latest dotenv and latest xjs
+
+        let latestDotEnv = shell.exec('npm show dotenv version', {silent: true}).stdout.trim();
+        let latestXjs = shell.exec(`npm show ${xjs} version`, {silent: true}).stdout.trim();
+
         fs.writeFileSync(appFullPath + '/package.json', JSON.stringify({
                 name,
                 version: "1.0.0",
@@ -107,28 +108,37 @@ let commands = {
                 },
                 keywords: [],
                 author: "",
-                license: "ISC"
+                license: "ISC",
+                dependencies: {
+                    "dotenv": "^" + latestDotEnv,
+                    "@trapcode/xjs": "^" + latestXjs
+                }
             }, null, 2
         ));
 
         let hasKnex = shell.exec('npm ls -g knex', {silent: true}).stdout;
         if (!hasKnex.includes('knex@')) {
-            log(`Installing ${yellowWithBars('knex')} globally.`)
+            log(`Installing ${yellow('knex')} globally.`);
             shell.exec('npm install knex -g', {silent: true})
         }
 
         let hasNodemon = shell.exec('npm ls -g nodemon', {silent: true}).stdout;
         if (!hasNodemon.includes('nodemon@')) {
-            log(`Installing ${yellowWithBars('nodemon')} globally.`);
+            log(`Installing ${yellow('nodemon')} globally.`);
             shell.exec('npm install nodemon -g', {silent: true})
         }
 
-        log(`Installing ${yellowWithBars('dotenv')}...`);
+        const installInApp = (lib) => {
+            return shell.exec(`npm install --prefix ${appFullPath} ${lib} --save --no-audit --silent`)
+        };
+
+        log(`Installing ${yellow('dotenv')}...`);
         installInApp('dotenv');
 
-        log(`Installing ${yellowWithBars(xjs)}...`);
+        log(`Installing ${yellow(xjs)}...`);
         console.log(white('This may take a while, Approx 2-5 Minutes depending on your connection.'));
         installInApp(xjs);
+
 
         // create install.js file
         fs.writeFileSync(appPath('install.js'), fs.readFileSync(cliPath('install.txt')).toString());
@@ -136,11 +146,17 @@ let commands = {
         log('Generating needed files...');
         shell.exec(`node ${appFullPath}/install.js`, {silent: true});
 
-        log(`Renaming ${yellowWithBars('env.example')} to ${yellowWithBars('.env')}`);
+        log(`Renaming ${yellow('env.example')} to ${yellow('.env')}`);
         fs.copyFileSync(appPath('env.example'), appPath('.env'));
 
         log(`Installation complete!!`);
-        
+
+        let appPackageDotJson = require(appPath('package.json'));
+
+        if (!appPackageDotJson.hasOwnProperty('dependencies')) {
+            console.log(appPackageDotJson);
+        }
+
         console.log(white('..........'));
         console.log(green(`Run the following commands to migrate your ${whiteBright('database')} and ${whiteBright('start')} your app.`));
         console.log(white('..........'));
