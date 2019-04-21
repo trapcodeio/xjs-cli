@@ -184,8 +184,6 @@ let commands = {
     },
 
     install() {
-        console.log(chalk.blink('hello'));
-
         let hasXjs = this.checkIfInXjsFolder(true);
         if (hasXjs) {
             return logErrorAndExit(`Xjs project already exists in this folder.`);
