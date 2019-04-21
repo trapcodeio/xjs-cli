@@ -6,6 +6,8 @@ const fse = require('fs-extra');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const shell = require('shelljs');
+
+// Xjs npm id
 const xjs = '@trapcode/xjs';
 
 
@@ -34,6 +36,12 @@ const logError = (...args) => {
     console.log(red(...args))
 };
 
+const logErrorAndExit = (...args) => {
+    args.unshift('Error: ');
+    logError(...args);
+    process.exit();
+};
+
 const cyanWithBars = (str) => cyan('{' + str.trim() + '}');
 const yellowWithBars = (str) => yellow('{' + str.trim() + '}');
 const whiteWithBars = (str) => whiteBright('{' + str.trim() + '}');
@@ -43,7 +51,7 @@ const redWithBars = (str) => red('{' + str.trim() + '}');
 
 let commands = {
     new(name, overwrite = false, fromRoot = false) {
-        if (name === undefined || typeof name === 'string' && !name.length) {
+        if (!fromRoot && ((name === undefined || typeof name === 'string') && !name.length)) {
             return prompt({
                 type: 'input',
                 name: 'app_name',
@@ -57,44 +65,42 @@ let commands = {
             return appFullPath + (str.length ? '/' + str : str)
         };
 
-
-        if (fs.existsSync(appFullPath) && !overwrite) {
-
-            let self = this;
-            return prompt({
-                'type': 'confirm',
-                name: 'app_overwrite',
-                message: red(`Folder ${whiteWithBars(name)} exists in dir ${whiteWithBars(basePath())}, should i try overwriting this folder?`)
-            }).then(({app_overwrite}) => {
-                if (app_overwrite) {
-                    return self.new(name, app_overwrite);
-                } else {
-                    return log(`Delete ${redWithBars(appFullPath)} first.`);
-                }
-            });
-
-        }
-
-        if (overwrite) {
-            fse.removeSync(appFullPath);
-        }
-
-
-        name = name.split('/');
+        name = appFullPath.split('/');
         if (name.length > 1) {
             name = name[name.length - 1];
         } else {
             name = name[0];
         }
 
-        log(`Creating new project ${yellow(name)}`);
 
-        mkdirp.sync(appFullPath);
+        if (!fromRoot) {
+            if (fs.existsSync(appFullPath) && !overwrite) {
 
-        // Get Latest dotenv and latest xjs
+                let self = this;
+                return prompt({
+                    'type': 'confirm',
+                    name: 'app_overwrite',
+                    message: red(`Folder ${whiteWithBars(name)} exists in dir ${whiteWithBars(basePath())}, should i try overwriting this folder?`)
+                }).then(({app_overwrite}) => {
+                    if (app_overwrite) {
+                        return self.new(name, app_overwrite);
+                    } else {
+                        return log(`Delete ${redWithBars(appFullPath)} first.`);
+                    }
+                });
 
-        // let latestDotEnv = shell.exec('npm show dotenv version', {silent: true}).stdout.trim();
-        // let latestXjs = shell.exec(`npm show ${xjs} version`, {silent: true}).stdout.trim();
+            }
+
+            if (overwrite) {
+                fse.removeSync(appFullPath);
+            }
+
+
+            log(`Creating new project ${yellow(name)}`);
+
+            mkdirp.sync(appFullPath);
+        }
+
 
         fs.writeFileSync(appFullPath + '/package.json', JSON.stringify({
                 name,
@@ -125,15 +131,19 @@ let commands = {
             shell.exec('npm install nodemon -g', {silent: true})
         }
 
-        if (process.platform === 'linux' || process.platform === 'win64') {
-            log(`Due To ${yellow('npm --prefix')} is not compatible in ${yellow('windows')}`);
+        if (!fromRoot && (process.platform === 'win32' || process.platform === 'win64')) {
+            log(`Due To ${yellow('npm --prefix')} is not compatible on ${yellow('windows')}`);
             log(`Enter your project folder (${yellow('cd ' + name)})`);
             log(`Then run ${yellow('xjs install')}`);
             process.exit();
         }
 
         const installInApp = (lib) => {
-            return shell.exec(`npm install --prefix ${appFullPath} ${lib} --save --no-audit --silent`)
+            let prefix = `--prefix ${appFullPath}`;
+            if (fromRoot) {
+                prefix = '';
+            }
+            return shell.exec(`npm install ${prefix} ${lib} --save --no-audit --silent`)
         };
 
         log(`Installing ${yellow('dotenv')}...`);
@@ -165,16 +175,45 @@ let commands = {
         console.log(green(`Run the following commands to migrate your ${whiteBright('database')} and ${whiteBright('start')} your app.`));
         console.log(white('..........'));
 
-        log(`Run ${yellow(`cd ${name}`)}`);
-        log(`Run ${yellow('xjs migrate')} to migrate our database.`);
+        if (!fromRoot) {
+            log(`Run ${yellow(`cd ${name}`)}`);
+        }
+
+        log(`Run ${yellow('xjs migrate')} to migrate your database.`);
         log(`Run ${yellow('node server.js')} to start app. `);
     },
 
-    checkIfInXjsFolder() {
-        if (!fs.existsSync(basePath('knexfile.js'))) {
-            logError('Xjs project not found in this folder.');
-            return process.exit();
+    install() {
+        console.log(chalk.blink('hello'));
+
+        let hasXjs = this.checkIfInXjsFolder(true);
+        if (hasXjs) {
+            return logErrorAndExit(`Xjs project already exists in this folder.`);
         }
+
+        log('Preparing for installation...');
+        this.new('', true, true);
+    },
+
+    checkIfInXjsFolder(trueOrFalse = false) {
+        let appHasXjs = basePath('package.json');
+        const msg = 'Xjs project not found in this folder.';
+        if (!fs.existsSync(appHasXjs)) {
+            return trueOrFalse ? false : logErrorAndExit(msg);
+        }
+        appHasXjs = require(appHasXjs);
+        if (typeof appHasXjs['dependencies'] === "undefined") {
+            return trueOrFalse ? false : logErrorAndExit(msg);
+        }
+
+        let appDependencies = Object.keys(appHasXjs['dependencies']);
+        for (let i = 0; i < appDependencies.length; i++) {
+            const key = appDependencies[i];
+            if (key === xjs) {
+                return true;
+            }
+        }
+        return trueOrFalse ? false : logErrorAndExit(msg);
     },
 
     migrate() {
