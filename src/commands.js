@@ -218,6 +218,21 @@ let commands = {
         shell.exec(`knex migrate:make ${name}`);
     },
 
+    migrateRefresh(skip = false) {
+        if (!skip) {
+            this.checkIfInXjsFolder();
+            log('Rolling back migrations...');
+        }
+        let rollback = shell.exec(`knex migrate:rollback`, {silent: true}).stdout;
+
+        if (!rollback.toLowerCase().includes('already')) {
+            return this.migrateRefresh(true);
+        } else {
+            shell.exec('knex migrate:latest');
+            return log('Migrations refreshed successfully!');
+        }
+    },
+
     migrateRollback() {
         this.checkIfInXjsFolder();
         shell.exec('knex migrate:rollback');

@@ -45,6 +45,11 @@ if (hasXjs) {
         .action(() => commands.migrateRollback());
 
     program
+        .command('migrate:refresh')
+        .description('Rollback the last set of migrations')
+        .action(() => commands.migrateRefresh());
+
+    program
         .command('run <job>')
         .alias('@')
         .description('Run Jobs')
