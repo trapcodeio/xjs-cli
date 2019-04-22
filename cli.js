@@ -11,7 +11,7 @@ program
     .version(packages.version)
     .description('Xjs Framework CLI');
 
-if(!hasXjs){
+if (!hasXjs) {
     program
         .command('new [name]')
         .description('Create new xjs project')
@@ -20,10 +20,10 @@ if(!hasXjs){
     program
         .command('install')
         .description('Install xjs in current dir.')
-        .action(()=> commands.install());
+        .action(() => commands.install());
 }
 
-if(hasXjs) {
+if (hasXjs) {
     program
         .command('start [env]')
         .description('Start app.')
@@ -35,6 +35,16 @@ if(hasXjs) {
         .action(() => commands.migrate());
 
     program
+        .command('migrate:make <name>')
+        .description('Generate new Middleware.')
+        .action((name) => commands.migrateMake(name));
+
+    program
+        .command('migrate:rollback')
+        .description('Rollback the last set of migrations')
+        .action(() => commands.migrateRollback());
+
+    program
         .command('run <job>')
         .alias('@')
         .description('Run Jobs')
@@ -42,32 +52,37 @@ if(hasXjs) {
 
     program
         .command('make:job <name> [command]')
-        .alias('mk:job')
+        // .alias('mk:job')
         .description('Generate new Job.')
         .action((name, command) => commands.makeJob(name, command));
 
 
     program
         .command('make:view <name>')
-        .alias('mk:v')
+        // .alias('mk:v')
         .description('Generate new view.')
         .action((name) => commands.makeView(name));
 
     program
         .command('make:model <name> <table>')
-        .alias('mk:model')
+        // .alias('mk:model')
         .description('Generate new Model.')
         .action((name, table) => commands.makeModel(name, table));
 
     program
         .command('make:controller <name>')
-        .alias('mk:ctrl')
+        // .alias('mk:ctrl')
         .description('Generate new Controller.')
         .action((name) => commands.makeController(name));
 
     program
+        .command('make:migration <name>')
+        .description('Generate new Middleware.')
+        .action((name) => commands.migrateMake(name));
+
+    program
         .command('make:middleware <name>')
-        .alias('mk:guard')
+        // .alias('mk:guard')
         .description('Generate new Middleware.')
         .action((name) => commands.makeMiddleware(name));
 }

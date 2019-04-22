@@ -165,12 +165,6 @@ let commands = {
 
         log(`Installation complete!!`);
 
-        let appPackageDotJson = require(appPath('package.json'));
-
-        if (!appPackageDotJson.hasOwnProperty('dependencies')) {
-            console.log(appPackageDotJson);
-        }
-
         console.log(white('..........'));
         console.log(green(`Run the following commands to migrate your ${whiteBright('database')} and ${whiteBright('start')} your app.`));
         console.log(white('..........'));
@@ -217,6 +211,16 @@ let commands = {
     migrate() {
         this.checkIfInXjsFolder();
         shell.exec('knex migrate:latest');
+    },
+
+    migrateMake(name) {
+        this.checkIfInXjsFolder();
+        shell.exec(`knex migrate:make ${name}`);
+    },
+
+    migrateRollback() {
+        this.checkIfInXjsFolder();
+        shell.exec('knex migrate:rollback');
     },
 
     start(env = 'development') {
