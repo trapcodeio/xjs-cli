@@ -90,6 +90,11 @@ if (hasXjs) {
         // .alias('mk:guard')
         .description('Generate new Middleware.')
         .action((name) => commands.makeMiddleware(name));
+
+    program
+        .command('check-for-update [package_manager]')
+        .description('Update Xjs using your desired package manager.')
+        .action((package_manager) => commands.checkForUpdate(package_manager));
 }
 
 program.on('command:*', function () {

@@ -49,6 +49,40 @@ const magentaWithBars = (str) => magenta('{' + str.trim() + '}');
 const redWithBars = (str) => red('{' + str.trim() + '}');
 
 
+const currentXjsVersion = () => {
+    let packageDotJson = require(basePath('package.json'));
+    let packages = packageDotJson.dependencies;
+    let packagesKeys = Object.keys(packages);
+    let version = '0.0.0';
+
+    for (let i = 0; i < packagesKeys.length; i++) {
+        const packagesKey = packagesKeys[i];
+        if (packagesKey === xjs) {
+            version = packages[packagesKey];
+            break;
+        }
+    }
+
+    if (version.substr(0, 1) === '^') {
+        version = version.substr(1);
+    }
+
+    return version;
+};
+
+const updateXjs = (npm = 'npm') => {
+    let command = `npm install ${xjs} --save --no-audit --silent`;
+    if (npm === 'yarn') {
+        command = `yarn add ${xjs} --silent`
+    }
+
+    console.log(white('............'));
+    log('Updating....');
+    console.log(white('............'));
+
+    return shell.exec(command);
+};
+
 let commands = {
     new(name, overwrite = false, fromRoot = false) {
         if (!fromRoot && ((name === undefined || typeof name === 'string') && !name.length)) {
@@ -275,6 +309,29 @@ let commands = {
     runJob(name) {
         this.checkIfInXjsFolder();
         shell.exec('node cli @' + name.trim())
+    },
+
+    checkForUpdate(package_manager = 'npm') {
+        log('Checking npm registry for version update...');
+        let version = shell.exec(`npm show ${xjs} version`, {silent: true}).stdout.trim();
+        let currentVersion = currentXjsVersion();
+        if (currentVersion < version) {
+            log(`Xjs latest version is ${yellow(version)} but yours is ${whiteBright(currentVersion)}`);
+            return prompt({
+                'type': 'confirm',
+                name: 'update',
+                message: `Would you like to update?`
+            }).then(({update}) => {
+                if (update) {
+                    updateXjs(package_manager);
+                } else {
+                    return log(`No changes made.`);
+                }
+            });
+        }
+
+        log(`You already have the latest version of ${yellow('Xjs')}`);
+        log(`Version: ${whiteBright(currentVersion)}`)
     }
 };
 
