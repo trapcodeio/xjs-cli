@@ -83,6 +83,42 @@ const updateXjs = (npm = 'npm') => {
     return shell.exec(command);
 };
 
+const loadJobs = function (path = false) {
+    if (path === false) {
+        path = basePath('backend/jobs');
+    }
+    let commands = {};
+
+    if (fs.existsSync(path)) {
+        let jobFiles = fs.readdirSync(path);
+        for (let i = 0; i < jobFiles.length; i++) {
+            let jobFile = jobFiles[i];
+            let jobFullPath = path + '/' + jobFile;
+
+            if (fs.lstatSync(jobFullPath).isDirectory()) {
+                return loadJobs(jobFullPath);
+            } else if (fs.lstatSync(jobFullPath).isFile()) {
+
+                let job = require(jobFullPath);
+                if (typeof job !== 'object') {
+                    logErrorAndExit('Job: {' + jobFile + '} did not return object!');
+
+                    if (job.hasOwnProperty('command') || !job.hasOwnProperty('handler')) {
+                        logErrorAndExit('Job: {' + jobFile + '} is not structured properly!')
+                    }
+                }
+
+                if (typeof job.cron === "string") {
+                    job.path = jobFullPath;
+                    commands[job.command] = job;
+                }
+            }
+        }
+    }
+
+    return commands;
+};
+
 let commands = {
     new(name, overwrite = false, fromRoot = false) {
         if (!fromRoot && ((name === undefined || typeof name === 'string') && !name.length)) {
@@ -189,7 +225,7 @@ let commands = {
 
 
         // create install.js file
-        fs.writeFileSync(appPath('install.js'), fs.readFileSync(cliPath('install.txt')).toString());
+        fs.writeFileSync(appPath('install.js'), fs.readFileSync(cliPath('factory/install.txt')).toString());
 
         log('Generating needed files...');
         shell.exec(`node ${appFullPath}/install.js`, {silent: true});
@@ -221,6 +257,17 @@ let commands = {
         this.new('', true, true);
     },
 
+    installProdTools() {
+        this.checkIfInXjsFolder();
+        log(`Checking if ${yellow('forever')} exists...`);
+        let hasForever = shell.exec('npm ls -g forever', {silent: true}).stdout;
+        if (!hasForever.includes('forever@')) {
+            log(`Installing ${yellow('forever')} globally.`);
+            shell.exec('npm install forever -g', {silent: true})
+        }
+        log('All production tools are installed!');
+    },
+
     checkIfInXjsFolder(trueOrFalse = false) {
         let appHasXjs = basePath('package.json');
         const msg = 'Xjs project not found in this folder.';
@@ -228,6 +275,9 @@ let commands = {
             return trueOrFalse ? false : logErrorAndExit(msg);
         }
         appHasXjs = require(appHasXjs);
+
+        if (appHasXjs.name === xjs) return true;
+
         if (typeof appHasXjs['dependencies'] === "undefined") {
             return trueOrFalse ? false : logErrorAndExit(msg);
         }
@@ -243,12 +293,10 @@ let commands = {
     },
 
     migrate() {
-        this.checkIfInXjsFolder();
         shell.exec('knex migrate:latest');
     },
 
     migrateMake(name) {
-        this.checkIfInXjsFolder();
         shell.exec(`knex migrate:make ${name}`);
     },
 
@@ -268,47 +316,76 @@ let commands = {
     },
 
     migrateRollback() {
-        this.checkIfInXjsFolder();
         shell.exec('knex migrate:rollback');
     },
 
     start(env = 'development') {
-        this.checkIfInXjsFolder();
-        if (env !== 'development') {
-            return shell.exec('node server.js');
+        if (env === 'development') {
+            shell.exec('nodemon server.js');
+        } else {
+            let startServer = shell.exec('forever start ./server.js');
+            if (startServer.stdout.trim().length) {
+                log('Server started.');
+            }
         }
-
-        return shell.exec('nodemon server.js');
     },
 
     makeView(name) {
-        this.checkIfInXjsFolder();
         shell.exec('node cli make:view ' + name);
     },
 
     makeController(name) {
-        this.checkIfInXjsFolder();
         shell.exec('node cli make:controller ' + name)
     },
 
     makeModel(...args) {
-        this.checkIfInXjsFolder();
         shell.exec('node cli make:model ' + args.join(' '))
     },
 
     makeMiddleware(name) {
-        this.checkIfInXjsFolder();
         shell.exec('node cli make:middleware ' + name)
     },
 
     makeJob(...args) {
-        this.checkIfInXjsFolder();
         shell.exec('node cli make:job ' + args.join(' '))
     },
 
-    runJob(name) {
-        this.checkIfInXjsFolder();
-        shell.exec('node cli @' + name.trim())
+    runJob(args) {
+        shell.exec('node cli @' + args.join(' '))
+    },
+
+    cron(env = 'development', from = undefined) {
+        const cron = require('node-cron');
+        let cronJobs = loadJobs();
+        let cronJobKeys = Object.keys(cronJobs);
+
+        if (cronJobKeys.length) {
+            fs.writeFileSync(basePath('cron-cmd.js'), fs.readFileSync(cliPath('factory/cron-cmd.txt')));
+        }
+        env = env === 'production' ? 'prod' : env;
+
+        if (from === undefined && env === 'prod') {
+            let startCronCmd = shell.exec(`forever start ./cron-cmd.js`, {silent: true});
+            if (startCronCmd.stdout.trim().length) {
+                return log('Cron Started.');
+            }
+        }
+
+        for (let i = 0; i < cronJobKeys.length; i++) {
+            const cronJobKey = cronJobKeys[i];
+            const cronJob = cronJobs[cronJobKey];
+            let duration = cronJob['cron'];
+
+            if (duration === 'everyMinute') {
+                duration = "* * * * *";
+            }
+
+            cron.schedule(duration, () => {
+                shell.exec('xjs @ ' + cronJob.command);
+            }, {});
+
+            log(`Job: ${yellowWithBars(cronJob.command)} added to cron`)
+        }
     },
 
     checkForUpdate(package_manager = 'npm') {
@@ -332,6 +409,36 @@ let commands = {
 
         log(`You already have the latest version of ${yellow('Xjs')}`);
         log(`Version: ${whiteBright(currentVersion)}`)
+    },
+
+    stop(process) {
+        if (process === 'all' || process === 'cron') {
+            let stopCron = shell.exec('forever stop ./cron-cmd.js', {silent: true});
+            if (stopCron.stdout.trim().length) {
+                log('Cron Stopped.');
+            }
+        }
+        if (process === 'all' || process === 'server') {
+            let stopServer = shell.exec('forever stop ./server.js', {silent: true});
+            if (stopServer.stdout.trim().length) {
+                log('Server Stopped.');
+            }
+        }
+    },
+
+    restart(process) {
+        if (process === 'all' || process === 'cron') {
+            let restartCron = shell.exec('forever restart ./cron-cmd.js', {silent: true});
+            if (restartCron.stdout.trim().length) {
+                log('Cron Restarted.');
+            }
+        }
+        if (process === 'all' || process === 'server') {
+            let restartServer = shell.exec('forever restart ./server.js', {silent: true});
+            if (restartServer.stdout.trim().length) {
+                log('Server Restarted!');
+            }
+        }
     }
 };
 

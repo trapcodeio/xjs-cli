@@ -50,7 +50,7 @@ if (hasXjs) {
         .action(() => commands.migrateRefresh());
 
     program
-        .command('run <job>')
+        .command('run <job...>')
         .alias('@')
         .description('Run Jobs')
         .action((name) => commands.runJob(name));
@@ -91,6 +91,25 @@ if (hasXjs) {
         .description('Generate new Middleware.')
         .action((name) => commands.makeMiddleware(name));
 
+    program
+        .command('cron [env] [from_cmd]')
+        .description('Start cron registered commands.')
+        .action((env, from_cmd) => commands.cron(env, from_cmd));
+
+    program
+        .command('stop <process>')
+        .description('Stop Server or Cron')
+        .action((process) => commands.stop(process));
+
+    program
+        .command('restart <process>')
+        .description('Stop Server or Cron')
+        .action((process) => commands.restart(process));
+
+    program
+        .command('install-prod-tools')
+        .description('Install Production tools')
+        .action(() => commands.installProdTools());
     program
         .command('check-for-update [package_manager]')
         .description('Update Xjs using your desired package manager.')

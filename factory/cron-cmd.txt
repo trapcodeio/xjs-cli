@@ -1,0 +1,3 @@
+const shelljs = require('shelljs');
+// Run Cron Job
+shelljs.exec('xjs cron prod cmd');
