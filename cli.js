@@ -103,7 +103,7 @@ if (hasXjs) {
 
     program
         .command('restart <process>')
-        .description('Stop Server or Cron')
+        .description('Restart Server or Cron')
         .action((process) => commands.restart(process));
 
     program
