@@ -264,7 +264,7 @@ let commands = {
             log(`Installing ${yellow('knex')} globally.`);
             shell.exec('npm install knex -g', {silent: true})
         }
-        
+
         log(`Checking if ${yellow('forever')} exists...`);
         let hasForever = shell.exec('npm ls -g forever', {silent: true}).stdout;
         if (!hasForever.includes('forever@')) {
@@ -329,6 +329,8 @@ let commands = {
     start(env = 'development') {
         if (env === 'development') {
             shell.exec('nodemon server.js');
+        } else if (env === 'node') {
+            shell.exec('node server.js');
         } else {
             let startServer = shell.exec('forever start ./server.js', {silent: true});
             if (startServer.stdout.trim().length) {
