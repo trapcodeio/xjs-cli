@@ -258,13 +258,20 @@ let commands = {
     },
 
     installProdTools() {
-        this.checkIfInXjsFolder();
+        log(`Checking if ${yellow('knex')} exists...`);
+        let hasKnex = shell.exec('npm ls -g knex', {silent: true}).stdout;
+        if (!hasKnex.includes('knex@')) {
+            log(`Installing ${yellow('knex')} globally.`);
+            shell.exec('npm install knex -g', {silent: true})
+        }
+        
         log(`Checking if ${yellow('forever')} exists...`);
         let hasForever = shell.exec('npm ls -g forever', {silent: true}).stdout;
         if (!hasForever.includes('forever@')) {
             log(`Installing ${yellow('forever')} globally.`);
             shell.exec('npm install forever -g', {silent: true})
         }
+
         log('All production tools are installed!');
     },
 
@@ -323,7 +330,7 @@ let commands = {
         if (env === 'development') {
             shell.exec('nodemon server.js');
         } else {
-            let startServer = shell.exec('forever start ./server.js');
+            let startServer = shell.exec('forever start ./server.js', {silent: true});
             if (startServer.stdout.trim().length) {
                 log('Server started.');
             }
