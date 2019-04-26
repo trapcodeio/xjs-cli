@@ -108,7 +108,7 @@ const loadJobs = function (path = false) {
                     }
                 }
 
-                if (typeof job.cron === "string") {
+                if (typeof job.schedule === "string") {
                     job.path = jobFullPath;
                     commands[job.command] = job;
                 }
@@ -374,7 +374,7 @@ let commands = {
         for (let i = 0; i < cronJobKeys.length; i++) {
             const cronJobKey = cronJobKeys[i];
             const cronJob = cronJobs[cronJobKey];
-            let duration = cronJob['cron'];
+            let duration = cronJob['schedule'];
 
             if (duration === 'everyMinute') {
                 duration = "* * * * *";
