@@ -1,6 +1,6 @@
 {
   "name": "xjs-cli",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Xjs Framework Cli",
   "main": "cli.js",
   "scripts": {
