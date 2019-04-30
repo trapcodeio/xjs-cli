@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const program = require('commander');
-// Require logic.js file and extract controller functions using JS destructuring assignment
 const commands = require('./src/commands');
 let packages = require('./package.json');
 
@@ -10,6 +9,7 @@ let hasXjs = commands.checkIfInXjsFolder(true);
 program
     .version(packages.version)
     .description('Xjs Framework CLI');
+
 
 if (!hasXjs) {
     program
@@ -122,3 +122,7 @@ program.on('command:*', function () {
 });
 
 program.parse(process.argv);
+
+if (!(process.argv.length > 2)) {
+    program.help();
+}
