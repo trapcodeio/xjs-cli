@@ -108,6 +108,11 @@ const loadJobs = function (path = false) {
                     }
                 }
 
+
+                if (typeof job.schedule === "function") {
+                    job.schedule = job.schedule();
+                }
+
                 if (typeof job.schedule === "string") {
                     job.path = jobFullPath;
                     commands[job.command] = job;
@@ -364,7 +369,12 @@ let commands = {
     },
 
     cron(env = 'development', from = undefined) {
+        // Require Project Xjs
+        global['$isConsole'] = true;
+        require(basePath(`server.js`));
+
         const cron = require('node-cron');
+
         let cronJobs = loadJobs();
         let cronJobKeys = Object.keys(cronJobs);
 
