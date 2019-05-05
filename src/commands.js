@@ -370,17 +370,19 @@ let commands = {
 
     cron(env = 'development', from = undefined) {
         // Require Project Xjs
-        global['$isConsole'] = true;
+        global['__isConsole'] = true;
         require(basePath(`server.js`));
 
         const cron = require('node-cron');
 
         let cronJobs = loadJobs();
         let cronJobKeys = Object.keys(cronJobs);
+        const cronCmd = basePath('cron-cmd.js');
 
-        if (cronJobKeys.length) {
-            fs.writeFileSync(basePath('cron-cmd.js'), fs.readFileSync(cliPath('factory/cron-cmd.txt')));
+        if (!fs.existsSync(cronCmd)) {
+            fs.writeFileSync(cronCmd, fs.readFileSync(cliPath('factory/cron-cmd.txt')));
         }
+
         env = env === 'production' ? 'prod' : env;
 
         if (from === undefined && env === 'prod') {
@@ -431,15 +433,27 @@ let commands = {
     },
 
     stop(process) {
+        const PM_PATH = `node_modules/${xjs}/engines/console/ProcessManager.js`;
+        let ProcessManager = {};
+        try {
+            ProcessManager = new (require(basePath(PM_PATH)))(basePath());
+        } catch (e) {
+            return logErrorAndExit('Xjs Cannot find ProcessManager in this project');
+        }
+
         if (process === 'all' || process === 'cron') {
             let stopCron = shell.exec('forever stop ./cron-cmd.js', {silent: true});
             if (stopCron.stdout.trim().length) {
+                // End all process associated with file
+                ProcessManager.endProcess(basePath('cron-cmd.js'), 'all');
                 log('Cron Stopped.');
             }
         }
         if (process === 'all' || process === 'server') {
             let stopServer = shell.exec('forever stop ./server.js', {silent: true});
             if (stopServer.stdout.trim().length) {
+                // End all process associated with file
+                ProcessManager.endProcess(basePath('server.js'), 'all');
                 log('Server Stopped.');
             }
         }
@@ -447,16 +461,12 @@ let commands = {
 
     restart(process) {
         if (process === 'all' || process === 'cron') {
-            let restartCron = shell.exec('forever restart ./cron-cmd.js', {silent: true});
-            if (restartCron.stdout.trim().length) {
-                log('Cron Restarted.');
-            }
+            this.stop('cron');
+            this.cron('prod')
         }
         if (process === 'all' || process === 'server') {
-            let restartServer = shell.exec('forever restart ./server.js', {silent: true});
-            if (restartServer.stdout.trim().length) {
-                log('Server Restarted!');
-            }
+            this.stop('server');
+            this.start('prod');
         }
     }
 };
