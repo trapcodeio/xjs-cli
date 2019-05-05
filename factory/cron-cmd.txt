@@ -1,3 +1,7 @@
-const shelljs = require('shelljs');
-// Run Cron Job
-shelljs.exec('xjs cron prod cmd');
+const ProcessManager = new (require('@trapcode/xjs/engines/console/ProcessManager'))(__dirname);
+
+// Cron Command
+const command = 'xjs cron prod cmd';
+
+// Runs command, Stores process id in storage/framework/console/processes.json
+ProcessManager.addCommandProcess(__filename, command);
