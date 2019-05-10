@@ -238,6 +238,16 @@ let commands = {
         log(`Renaming ${yellow('env.example')} to ${yellow('.env')}`);
         fs.copyFileSync(appPath('env.example'), appPath('.env'));
 
+        // Copy Empty Demo Database
+        let DemoDatabase = appPath('storage/app/db');
+        if (!fs.existsSync(DemoDatabase)) {
+            mkdirp.sync(DemoDatabase);
+        }
+
+        DemoDatabase += '/database.sqlite';
+        fs.copyFileSync(cliPath('factory/database.sqlite'), DemoDatabase);
+
+
         log(`Installation complete!!`);
 
         console.log(white('..........'));
