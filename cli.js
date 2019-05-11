@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 const program = require('commander');
 const commands = require('./src/commands');
 let packages = require('./package.json');
@@ -111,9 +110,9 @@ if (hasXjs) {
         .description('Install Production tools')
         .action(() => commands.installProdTools());
     program
-        .command('check-for-update [package_manager]')
+        .command('check-for-update')
         .description('Update Xjs using your desired package manager.')
-        .action((package_manager) => commands.checkForUpdate(package_manager));
+        .action((package_manager) => commands.checkForUpdate());
 }
 
 program.on('command:*', function () {

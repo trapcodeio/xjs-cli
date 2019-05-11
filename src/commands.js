@@ -42,10 +42,10 @@ const logErrorAndExit = (...args) => {
     process.exit();
 };
 
-const cyanWithBars = (str) => cyan('{' + str.trim() + '}');
+// const cyanWithBars = (str) => cyan('{' + str.trim() + '}');
 const yellowWithBars = (str) => yellow('{' + str.trim() + '}');
 const whiteWithBars = (str) => whiteBright('{' + str.trim() + '}');
-const magentaWithBars = (str) => magenta('{' + str.trim() + '}');
+// const magentaWithBars = (str) => magenta('{' + str.trim() + '}');
 const redWithBars = (str) => red('{' + str.trim() + '}');
 
 
@@ -70,10 +70,17 @@ const currentXjsVersion = () => {
     return version;
 };
 
-const updateXjs = (npm = 'npm') => {
+const HasYarnLock  = () => fs.existsSync(basePath('yarn.lock'));
+
+const updateXjs = () => {
     let command = `npm install ${xjs} --save --no-audit --silent`;
-    if (npm === 'yarn') {
+    if (HasYarnLock()) {
+        log('Using Yarn...');
         command = `yarn add ${xjs} --silent`
+    }else{
+        log('Using Npm...');
+        // if NPM remove xjs first
+        shell.exec(`npm remove ${{xjs}}`, {silent: true})
     }
 
     console.log(white('............'));
@@ -214,11 +221,19 @@ let commands = {
         }
 
         const installInApp = (lib) => {
-            let prefix = `--prefix ${appFullPath}`;
-            if (fromRoot) {
-                prefix = '';
+            let command = '';
+            if(fromRoot){
+                if(HasYarnLock()){
+                    command = `yarn add ${lib} --silent`
+                }else {
+                    command = `npm install ${lib} --no-audit --silent`
+                }
+            }else{
+                let prefix = `--prefix ${appFullPath}`;
+                command = `npm install ${prefix} ${lib} --save --no-audit --silent`;
             }
-            return shell.exec(`npm install ${prefix} ${lib} --save --no-audit --silent`)
+
+            return shell.exec(command)
         };
 
         log(`Installing ${yellow('dotenv')}...`);
@@ -293,9 +308,11 @@ let commands = {
     checkIfInXjsFolder(trueOrFalse = false) {
         let appHasXjs = basePath('package.json');
         const msg = 'Xjs project not found in this folder.';
+
         if (!fs.existsSync(appHasXjs)) {
             return trueOrFalse ? false : logErrorAndExit(msg);
         }
+
         appHasXjs = require(appHasXjs);
 
         if (appHasXjs.name === xjs) return true;
@@ -305,12 +322,14 @@ let commands = {
         }
 
         let appDependencies = Object.keys(appHasXjs['dependencies']);
+
         for (let i = 0; i < appDependencies.length; i++) {
             const key = appDependencies[i];
             if (key === xjs) {
                 return true;
             }
         }
+
         return trueOrFalse ? false : logErrorAndExit(msg);
     },
 
@@ -419,7 +438,7 @@ let commands = {
         }
     },
 
-    checkForUpdate(package_manager = 'npm') {
+    checkForUpdate() {
         log('Checking npm registry for version update...');
         let version = shell.exec(`npm show ${xjs} version`, {silent: true}).stdout.trim();
         let currentVersion = currentXjsVersion();
@@ -431,7 +450,7 @@ let commands = {
                 message: `Would you like to update?`
             }).then(({update}) => {
                 if (update) {
-                    updateXjs(package_manager);
+                    updateXjs();
                 } else {
                     return log(`No changes made.`);
                 }
