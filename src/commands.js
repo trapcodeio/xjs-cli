@@ -186,7 +186,7 @@ let commands = {
 
         fs.writeFileSync(appFullPath + '/package.json', JSON.stringify({
                 name,
-                version: "1.0.0",
+                version: "0.0.1",
                 description: "",
                 main: "server.js",
                 scripts: {
