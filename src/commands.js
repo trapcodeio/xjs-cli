@@ -336,6 +336,7 @@ let commands = {
             this.checkIfInXjsFolder();
             log('Rolling back migrations...');
         }
+
         let rollback = shell.exec(`knex migrate:rollback`, {silent: true}).stdout;
 
         if (!rollback.toLowerCase().includes('already')) {
