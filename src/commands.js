@@ -323,11 +323,12 @@ let commands = {
     },
 
     migrate() {
-        shell.exec('knex migrate:latest');
+        return this.cli("migrate");
+        // shell.exec('knex migrate:latest');
     },
 
-    migrateMake(name) {
-        shell.exec(`knex migrate:make ${name}`);
+    migrateMake(...args) {
+        this.cli(`migrate make ${args.join(' ')}`);
     },
 
     migrateRefresh(skip = false) {
