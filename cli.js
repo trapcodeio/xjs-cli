@@ -1,16 +1,24 @@
 #!/usr/bin/env node
 const program = require('commander');
+const _ = require("lodash");
 const commands = require('./src/commands');
 let packages = require('./package.json');
 
-let hasXjs = commands.checkIfInXjsFolder(true);
+const defaultConfig = {
+    exec: "node",
+    script: "app.js"
+};
+
+global['XjsCliConfig'] = commands.checkIfInXjsFolder(true, true);
+
+XjsCliConfig = _.merge(defaultConfig, XjsCliConfig);
 
 program
     .version(packages.version)
     .description('Xjs Framework CLI');
 
 
-if (!hasXjs) {
+if (!XjsCliConfig) {
     program
         .command('new [name]')
         .description('Create new xjs project')
@@ -22,11 +30,16 @@ if (!hasXjs) {
         .action(() => commands.install());
 }
 
-if (hasXjs) {
+if (XjsCliConfig) {
     program
         .command('start [env]')
         .description('Start app.')
         .action(env => commands.start(env));
+
+    program
+        .command('install [plugin]')
+        .description('Install plugin')
+        .action(plugin => commands.installPlugin(plugin));
 
     program
         .command('migrate')
@@ -112,7 +125,7 @@ if (hasXjs) {
     program
         .command('check-for-update')
         .description('Update Xjs using your desired package manager.')
-        .action((package_manager) => commands.checkForUpdate());
+        .action(() => commands.checkForUpdate());
 }
 
 program.on('command:*', function () {

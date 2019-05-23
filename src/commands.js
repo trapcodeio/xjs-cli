@@ -70,14 +70,14 @@ const currentXjsVersion = () => {
     return version;
 };
 
-const HasYarnLock  = () => fs.existsSync(basePath('yarn.lock'));
+const HasYarnLock = () => fs.existsSync(basePath('yarn.lock'));
 
 const updateXjs = () => {
     let command = `npm install ${xjs} --save --no-audit --silent`;
     if (HasYarnLock()) {
         log('Using Yarn...');
         command = `yarn add ${xjs} --silent`
-    }else{
+    } else {
         log('Using Npm...');
         // if NPM remove xjs first
         shell.exec(`npm remove ${{xjs}}`, {silent: true})
@@ -222,13 +222,13 @@ let commands = {
 
         const installInApp = (lib) => {
             let command = '';
-            if(fromRoot){
-                if(HasYarnLock()){
+            if (fromRoot) {
+                if (HasYarnLock()) {
                     command = `yarn add ${lib} --silent`
-                }else {
+                } else {
                     command = `npm install ${lib} --no-audit --silent`
                 }
-            }else{
+            } else {
                 let prefix = `--prefix ${appFullPath}`;
                 command = `npm install ${prefix} ${lib} --save --no-audit --silent`;
             }
@@ -305,32 +305,21 @@ let commands = {
         log('All production tools are installed!');
     },
 
-    checkIfInXjsFolder(trueOrFalse = false) {
-        let appHasXjs = basePath('package.json');
-        const msg = 'Xjs project not found in this folder.';
-
-        if (!fs.existsSync(appHasXjs)) {
-            return trueOrFalse ? false : logErrorAndExit(msg);
-        }
-
-        appHasXjs = require(appHasXjs);
-
-        if (appHasXjs.name === xjs) return true;
-
-        if (typeof appHasXjs['dependencies'] === "undefined") {
-            return trueOrFalse ? false : logErrorAndExit(msg);
-        }
-
-        let appDependencies = Object.keys(appHasXjs['dependencies']);
-
-        for (let i = 0; i < appDependencies.length; i++) {
-            const key = appDependencies[i];
-            if (key === xjs) {
-                return true;
+    checkIfInXjsFolder(trueOrFalse = false, $returnData = false) {
+        let appHasXjs = basePath('use-xjs-cli.json');
+        if (fs.existsSync(appHasXjs)) {
+            if ($returnData) {
+                try {
+                    return require(appHasXjs);
+                } catch (e) {
+                    return logErrorAndExit(e.message);
+                }
             }
+        } else {
+            const msg = 'Xjs project not found in this folder.';
+            return trueOrFalse ? false : logErrorAndExit(msg);
         }
 
-        return trueOrFalse ? false : logErrorAndExit(msg);
     },
 
     migrate() {
@@ -373,28 +362,34 @@ let commands = {
         }
     },
 
+    cli(command) {
+        const config = XjsCliConfig;
+        const shellCommand = `${config.exec} ${config.script} cli ${command}`;
+        shell.exec(shellCommand)
+    },
+
     makeView(name) {
-        shell.exec('node cli make:view ' + name);
+        return this.cli("make:view " + name)
     },
 
     makeController(name) {
-        shell.exec('node cli make:controller ' + name)
+        return this.cli('make:controller ' + name)
     },
 
     makeModel(...args) {
-        shell.exec('node cli make:model ' + args.join(' '))
+        return this.cli('make:model ' + args.join(' '))
     },
 
     makeMiddleware(name) {
-        shell.exec('node cli make:middleware ' + name)
+        return this.cli('make:middleware ' + name)
     },
 
     makeJob(...args) {
-        shell.exec('node cli make:job ' + args.join(' '))
+        return this.cli('make:job ' + args.join(' '))
     },
 
     runJob(args) {
-        shell.exec('node cli @' + args.join(' '))
+        return this.cli('@' + args.join(' '))
     },
 
     cron(env = 'development', from = undefined) {
@@ -497,6 +492,10 @@ let commands = {
             this.stop('server');
             this.start('prod');
         }
+    },
+
+    installPlugin($plugin) {
+        shell.exec(`node cli install ${$plugin}`);
     }
 };
 
