@@ -1,24 +1,17 @@
 #!/usr/bin/env node
 const program = require('commander');
-const _ = require("lodash");
 const commands = require('./src/commands');
 let packages = require('./package.json');
 
-const defaultConfig = {
-    exec: "node",
-    script: "app.js"
-};
+let config = commands.checkIfInXjsFolder(true, true);
 
-global['XjsCliConfig'] = commands.checkIfInXjsFolder(true, true);
-
-XjsCliConfig = _.merge(defaultConfig, XjsCliConfig);
 
 program
     .version(packages.version)
     .description('Xjs Framework CLI');
 
 
-if (!XjsCliConfig) {
+if (!config) {
     program
         .command('new [name]')
         .description('Create new xjs project')
@@ -30,7 +23,7 @@ if (!XjsCliConfig) {
         .action(() => commands.install());
 }
 
-if (XjsCliConfig) {
+if (config) {
     program
         .command('start [env]')
         .description('Start app.')

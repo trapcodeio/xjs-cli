@@ -6,9 +6,24 @@ const fse = require('fs-extra');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const shell = require('shelljs');
+const _ = require("lodash");
+const ObjectCollection = require("./ObejctCollection");
+
 
 // Xjs npm id
-const xjs = '@trapcode/xjs';
+const xjs = 'xpresser';
+
+const defaultConfig = {
+    development: {
+        exec: "node",
+        main: "app.js"
+    },
+
+    production: {
+        exec: "forever start",
+        main: "app.js"
+    }
+};
 
 
 /**
@@ -306,11 +321,34 @@ let commands = {
     },
 
     checkIfInXjsFolder(trueOrFalse = false, $returnData = false) {
+
+        if (typeof XjsCliConfig !== "undefined") {
+            if (trueOrFalse) {
+                return true;
+            } else if ($returnData) {
+                return XjsCliConfig;
+            }
+        }
+
         let appHasXjs = basePath('use-xjs-cli.json');
         if (fs.existsSync(appHasXjs)) {
             if ($returnData) {
                 try {
-                    return require(appHasXjs);
+                    let config = require(appHasXjs);
+                    if (typeof config === "object") {
+                        config = _.merge(defaultConfig, config);
+                        global['XjsCliConfig'] = new ObjectCollection(config);
+
+                        if (
+                            !XjsCliConfig.has('development.main')
+                            ||
+                            !XjsCliConfig.has('production.main')
+                        ) {
+                            return logErrorAndExit(" No development/production settings in use-xjs-cli.json");
+                        } else {
+                            return config;
+                        }
+                    }
                 } catch (e) {
                     return logErrorAndExit(e.message);
                 }
@@ -324,7 +362,6 @@ let commands = {
 
     migrate() {
         return this.cli("migrate");
-        // shell.exec('knex migrate:latest');
     },
 
     migrateMake(...args) {
@@ -352,22 +389,24 @@ let commands = {
     },
 
     start(env = 'development') {
-        if (env === 'development') {
-            shell.exec('nodemon server.js');
-        } else if (env === 'node') {
-            shell.exec('node server.js');
-        } else {
-            let startServer = shell.exec('forever start ./server.js', {silent: true});
+        let config = XjsCliConfig;
+        if (env === 'prod') {
+            config = XjsCliConfig.get('production');
+            let startServer = shell.exec(`${config.exec} ${config.main}`, {silent: true});
             if (startServer.stdout.trim().length) {
                 log('Server started.');
             }
+        } else {
+            config = XjsCliConfig.get('development');
+            shell.exec(`${config.exec} ${config.main}`);
         }
     },
 
     cli(command) {
-        const config = XjsCliConfig;
-        const shellCommand = `${config.exec} ${config.script} cli ${command}`;
-        shell.exec(shellCommand)
+        const config = XjsCliConfig.get('development');
+        const shellCommand = `${config.exec} ${config.main} cli ${command}`;
+        shell.exec(shellCommand);
+        process.exit();
     },
 
     makeView(name) {
