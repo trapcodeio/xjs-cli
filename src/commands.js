@@ -22,7 +22,9 @@ const defaultConfig = {
     production: {
         exec: "forever start",
         main: "app.js"
-    }
+    },
+
+    jobsPath: 'backend/jobs'
 };
 
 
@@ -390,11 +392,17 @@ let commands = {
 
     start(env = 'development') {
         let config = XjsCliConfig;
+
         if (env === 'prod') {
             config = XjsCliConfig.get('production');
-            let startServer = shell.exec(`${config.exec} ${config.main}`, {silent: true});
-            if (startServer.stdout.trim().length) {
+            const command = `${config.exec} ${config.main}`;
+            const startServer = shell.exec(command, {silent: true});
+
+            if (!startServer.stderr.trim().length) {
+                log(command);
                 log('Server started.');
+            }else{
+                logErrorAndExit(startServer.stderr);
             }
         } else {
             config = XjsCliConfig.get('development');
@@ -434,13 +442,16 @@ let commands = {
     },
 
     cron(env = 'development', from = undefined) {
+        if(env==='prod') env = 'production';
+
+        const config = XjsCliConfig.get(env);
         // Require Project Xjs
-        global['__isConsole'] = true;
-        require(basePath(`server.js`));
+        require(basePath(config['main']));
 
         const cron = require('node-cron');
 
-        let cronJobs = loadJobs();
+        let cronJobs = loadJobs(basePath(XjsCliConfig.get("jobsPath")));
+
         let cronJobKeys = Object.keys(cronJobs);
         const cronCmd = basePath('cron-cmd.js');
 
@@ -498,13 +509,19 @@ let commands = {
     },
 
     stop(process) {
-        const PM_PATH = `node_modules/${xjs}/engines/console/ProcessManager.js`;
-        let ProcessManager = {};
-        try {
-            ProcessManager = new (require(basePath(PM_PATH)))(basePath());
-        } catch (e) {
+        const PM_PATH = basePath(`node_modules/${xjs}/src/console/ProcessManager.js`);
+
+        if(!fs.existsSync(PM_PATH)){
             return logErrorAndExit('Xjs Cannot find ProcessManager in this project');
         }
+        let ProcessManager = {};
+
+        try {
+            ProcessManager = new (require(PM_PATH))(basePath());
+        } catch (e) {
+            return logErrorAndExit(e.message);
+        }
+
 
         if (process === 'all' || process === 'cron') {
             let stopCron = shell.exec('forever stop ./cron-cmd.js', {silent: true});

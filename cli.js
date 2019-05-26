@@ -74,7 +74,7 @@ if (config) {
         .action((name) => commands.makeView(name));
 
     program
-        .command('make:model <name> <table>')
+        .command('make:model <name> [table]')
         // .alias('mk:model')
         .description('Generate new Model.')
         .action((name, table) => commands.makeModel(name, table));
