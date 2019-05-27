@@ -1,0 +1,13 @@
+{
+  "development": {
+    "main": "app.ts",
+    "console": "ts-node-dev --transpileOnly",
+    "server": "ts-node-dev --respawn --transpileOnly"
+  },
+  "production": {
+    "main": "dist/app.js",
+    "console": "node",
+    "server": "forever start"
+  },
+  "jobsPath": "jobs"
+}

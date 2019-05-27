@@ -18,6 +18,11 @@ if (!config) {
         .action(name => commands.new(name));
 
     program
+        .command('init [lang]')
+        .description("Creates use-xjs-cli.json for your project.")
+        .action((lang)=> commands.init(lang));
+
+    program
         .command('install')
         .description('Install xjs in current dir.')
         .action(() => commands.install());

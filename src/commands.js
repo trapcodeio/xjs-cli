@@ -14,14 +14,17 @@ const ObjectCollection = require("./ObejctCollection");
 const xjs = 'xpresser';
 
 const defaultConfig = {
+
     development: {
-        exec: "node",
-        main: "app.js"
+        'main': "app.js",
+        'console': "node",
+        'server': "node",
     },
 
     production: {
-        exec: "forever start",
-        main: "app.js"
+        'main': "app.js",
+        'console': "node",
+        'server': "forever start",
     },
 
     jobsPath: 'backend/jobs'
@@ -149,6 +152,24 @@ const loadJobs = function (path = false) {
 };
 
 let commands = {
+    init(lang = 'js') {
+        const UseFile = basePath('use-xjs-cli.json');
+
+        if (fs.existsSync(UseFile)) {
+            return logErrorAndExit('Init file already exists.');
+        }
+
+        if (lang === 'typescript') lang = 'ts';
+        if (lang === 'javascript') lang = 'js';
+
+        if (lang === 'ts') {
+            fs.copyFileSync(cliPath('factory/use-xjs-cli.ts.json'), UseFile)
+        } else {
+            fs.copyFileSync(cliPath('factory/use-xjs-cli.js.json'), UseFile)
+        }
+
+        log("Init file created.")
+    },
     new(name, overwrite = false, fromRoot = false) {
         if (!fromRoot && ((name === undefined || typeof name === 'string') && !name.length)) {
             return prompt({
@@ -376,18 +397,18 @@ let commands = {
             log('Rolling back migrations...');
         }
 
-        let rollback = shell.exec(`knex migrate:rollback`, {silent: true}).stdout;
+        let rollback = this.cli(`migrate rollback`, {silent: true}).stdout;
 
         if (!rollback.toLowerCase().includes('already')) {
             return this.migrateRefresh(true);
         } else {
-            shell.exec('knex migrate:latest');
+            this.cli('migrate latest');
             return log('Migrations refreshed successfully!');
         }
     },
 
     migrateRollback() {
-        shell.exec('knex migrate:rollback');
+        return this.cli('migrate rollback');
     },
 
     start(env = 'development') {
@@ -395,24 +416,24 @@ let commands = {
 
         if (env === 'prod') {
             config = XjsCliConfig.get('production');
-            const command = `${config.exec} ${config.main}`;
+            const command = `${config.server} ${config.main}`;
             const startServer = shell.exec(command, {silent: true});
 
             if (!startServer.stderr.trim().length) {
                 log(command);
                 log('Server started.');
-            }else{
+            } else {
                 logErrorAndExit(startServer.stderr);
             }
         } else {
             config = XjsCliConfig.get('development');
-            shell.exec(`${config.exec} ${config.main}`);
+            shell.exec(`${config.server} ${config.main}`);
         }
     },
 
     cli(command) {
         const config = XjsCliConfig.get('development');
-        const shellCommand = `${config.exec} ${config.main} cli ${command}`;
+        const shellCommand = `${config.console} ${config.main} cli ${command}`;
         shell.exec(shellCommand);
         process.exit();
     },
@@ -442,7 +463,7 @@ let commands = {
     },
 
     cron(env = 'development', from = undefined) {
-        if(env==='prod') env = 'production';
+        if (env === 'prod') env = 'production';
 
         const config = XjsCliConfig.get(env);
         // Require Project Xjs
@@ -511,7 +532,7 @@ let commands = {
     stop(process) {
         const PM_PATH = basePath(`node_modules/${xjs}/src/console/ProcessManager.js`);
 
-        if(!fs.existsSync(PM_PATH)){
+        if (!fs.existsSync(PM_PATH)) {
             return logErrorAndExit('Xjs Cannot find ProcessManager in this project');
         }
         let ProcessManager = {};
@@ -553,7 +574,7 @@ let commands = {
     },
 
     installPlugin($plugin) {
-        shell.exec(`node cli install ${$plugin}`);
+        return this.cli(`install ${$plugin}`);
     }
 };
 
