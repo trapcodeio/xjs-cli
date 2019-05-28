@@ -414,10 +414,10 @@ let commands = {
     start(env = 'development') {
         let config = XjsCliConfig;
 
-        if (env === 'prod') {
+        if (env === 'prod' || env === 'production') {
             config = XjsCliConfig.get('production');
             const command = `${config.server} ${config.main}`;
-            const startServer = shell.exec(command, {silent: true});
+            const startServer = shell.exec(command, {silent: config.server.includes('forever')});
 
             if (!startServer.stderr.trim().length) {
                 log(command);
